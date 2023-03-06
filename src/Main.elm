@@ -1,11 +1,8 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, article, blockquote, button, cite, div, h2, p, pre, text)
-import Html.Attributes exposing (style)
-import Html.Events exposing (..)
-import Http
-import Json.Decode exposing (Decoder, field, int, map4, string)
+import Html exposing (Attribute, Html, article, div, h1, node, section, span, text)
+import Html.Attributes exposing (attribute, style)
 
 
 
@@ -26,22 +23,12 @@ main =
 
 
 type Model
-    = Failure
-    | Loading
-    | Success Quote
-
-
-type alias Quote =
-    { quote : String
-    , source : String
-    , author : String
-    , year : Int
-    }
+    = None
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Loading, getRandomQuote )
+    ( None, Cmd.none )
 
 
 
@@ -49,23 +36,14 @@ init _ =
 
 
 type Msg
-    = MorePlease
-    | GotQuote (Result Http.Error Quote)
+    = NoMsg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        MorePlease ->
-            ( Loading, getRandomQuote )
-
-        GotQuote result ->
-            case result of
-                Ok quote ->
-                    ( Success quote, Cmd.none )
-
-                Err _ ->
-                    ( Failure, Cmd.none )
+        NoMsg ->
+            ( model, Cmd.none )
 
 
 
@@ -84,51 +62,61 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div []
-        [ h2 [] [ text "Random Quotes" ]
-        , viewQuote model
+        [ viewCard
+        , styleNode
         ]
 
 
-viewQuote : Model -> Html Msg
-viewQuote model =
-    case model of
-        Failure ->
-            div []
-                [ text "I could not load a random quote for some reason."
-                , button [ onClick MorePlease ] [ text "Try Again!" ]
-                ]
-
-        Loading ->
-            text "Loading..."
-
-        Success quote ->
-            div []
-                [ button [ onClick MorePlease, style "display" "block" ] [ text "More Please!" ]
-                , blockquote [] [ text quote.quote ]
-                , p [ style "text-align" "right" ]
-                    [ text "- "
-                    , cite [] [ text quote.source ]
-                    , text (" by " ++ quote.author ++ " (" ++ String.fromInt quote.year ++ ")")
-                    ]
-                ]
+viewCard : Html Msg
+viewCard =
+    article [ attribute "class" "card" ]
+        [ h1 [ attribute "class" "title" ] [ text "title" ]
+        , section [ attribute "class" "tags" ]
+            [ span [ attribute "class" "tag epic" ] [ text "epic" ]
+            , span [ attribute "class" "tag due" ] [ text "due" ]
+            ]
+        , section []
+            [ span [ attribute "class" "icon issuetype" ] [ text "issuetype" ]
+            , span [ attribute "class" "issuekey" ] [ text "issuekey" ]
+            , span [ attribute "class" "icon priority" ] [ text "priority" ]
+            , span [ attribute "class" "icon assignee" ] [ text "assignee" ]
+            ]
+        ]
 
 
-
--- HTTP
-
-
-getRandomQuote : Cmd Msg
-getRandomQuote =
-    Http.get
-        { url = "https://elm-lang.org/api/random-quotes"
-        , expect = Http.expectJson GotQuote quoteDecoder
+styleNode : Html msg
+styleNode =
+    node "style"
+        []
+        [ text """
+        .card {
+            width: 270px;
+            border: 1px solid black;
+            border-radius: 5px;
+            padding: 12px;
         }
-
-
-quoteDecoder : Decoder Quote
-quoteDecoder =
-    map4 Quote
-        (field "quote" string)
-        (field "source" string)
-        (field "author" string)
-        (field "year" int)
+        .card > .title {
+            font-size: 1rem;
+            margin: 0;
+        }
+        .card > .tags {
+            display: flex;
+            gap: 8px;
+        }
+        .card .tag {
+            font-size: 0.75rem;
+            border-radius: 3px;
+            background-color: rgba(0,0,0,0.1);
+            font-weight: bold;
+            padding: 2px 2px 3px;
+        }
+        .tag.epic {
+            background-color: #EAE6FF;
+            color: #403294;
+        }
+        .tag.due {
+            background-color: #FFEBE6;
+            color: #DE350B;
+        }
+        """
+        ]
